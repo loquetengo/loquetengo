@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0d1b3e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Como Lo Que Tengo">
+<meta name="description" content="Recetas inteligentes con lo que tienes en casa">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Como Lo Que Tengo</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Nunito:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d1b3e;
+  --card: #162454;
+  --card2: #1e2e6a;
+  --lime: #ff7a1a;
+  --lime2: #e06010;
+  --text: #f5f5f0;
+  --muted: #8090c0;
+  --border: rgba(255,255,255,0.1);
+  --radius: 20px;
+  --radius-sm: 12px;
+  --danger: #ff5c5c;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: 'Nunito', sans-serif; }
+
+/* SPLASH */
+.splash {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 999; transition: opacity 0.5s ease;
+}
+.splash.hide { opacity: 0; pointer-events: none; }
+.splash-logo { width: 72px; height: 72px; background: var(--lime); border-radius: 22px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; animation: pop 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+.splash-title { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; color: var(--text); letter-spacing: -1px; }
+.splash-title span { color: var(--lime); }
+.splash-sub { font-size: 14px; color: var(--muted); margin-top: 6px; }
+@keyframes pop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* APP SHELL */
+.app { display: flex; flex-direction: column; height: 100%; max-width: 480px; margin: 0 auto; }
+
+/* SCREENS */
+.screen { display: none; flex-direction: column; height: 100%; overflow: hidden; }
+.screen.active { display: flex; }
+
+/* AUTH SCREEN */
+.auth-screen { background: var(--bg); padding: 0; }
+.auth-hero { background: var(--lime); padding: 36px 28px 28px; position: relative; overflow: hidden; }
+.auth-hero::after { content: ''; position: absolute; bottom: -30px; left: 0; right: 0; height: 60px; background: var(--bg); border-radius: 50% 50% 0 0 / 60px; }
+.auth-hero-icon { width: 64px; height: 64px; background: rgba(0,0,0,0.12); border-radius: 18px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
+.auth-hero h1 { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; color: #0a0a0a; letter-spacing: -1px; line-height: 1.1; }
+.auth-hero p { font-size: 14px; color: rgba(0,0,0,0.6); margin-top: 8px; }
+.auth-body { flex: 1; overflow-y: auto; padding: 48px 28px 32px; }
+.auth-tabs { display: flex; gap: 0; margin-bottom: 28px; border-bottom: 1px solid var(--border); }
+.auth-tab { flex: 1; padding: 10px; background: none; border: none; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--muted); cursor: pointer; padding-bottom: 12px; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.2s; }
+.auth-tab.active { color: var(--lime); border-bottom-color: var(--lime); }
+.auth-form { display: none; flex-direction: column; gap: 14px; }
+.auth-form.active { display: flex; }
+.field-label { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+.field input { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; font-family: 'Nunito', sans-serif; font-size: 15px; color: var(--text); outline: none; transition: border-color 0.2s; }
+.field input:focus { border-color: rgba(255,122,26,0.5); }
+.field input::placeholder { color: var(--muted); }
+.btn-main { width: 100%; padding: 16px; background: var(--lime); border: none; border-radius: var(--radius-sm); font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: #ffffff; cursor: pointer; transition: all 0.15s; margin-top: 4px; }
+.btn-main:active { transform: scale(0.98); background: var(--lime2); }
+.auth-divider { text-align: center; font-size: 13px; color: var(--muted); margin: 4px 0; }
+
+/* MAIN APP */
+.main-screen { background: var(--bg); }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 52px 20px 16px; }
+.topbar-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; }
+.topbar-title span { color: var(--lime); }
+.user-avatar { width: 36px; height: 36px; background: var(--lime); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: #ffffff; cursor: pointer; }
+
+/* TABS */
+.mode-tabs { display: flex; margin: 0 20px 16px; background: var(--card); border-radius: var(--radius-sm); padding: 4px; gap: 4px; }
+.mode-tab { flex: 1; padding: 10px 8px; border: none; background: none; font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; border-radius: 9px; transition: all 0.2s; }
+.mode-tab.active { background: var(--lime); color: #ffffff; }
+
+/* SCROLL */
+.scroll { flex: 1; overflow-y: auto; padding: 0 20px 8px; -webkit-overflow-scrolling: touch; }
+.scroll::-webkit-scrollbar { display: none; }
+
+/* UPLOAD */
+.upload-box { border: 1.5px dashed rgba(255,122,26,0.3); border-radius: var(--radius); padding: 2rem 1rem; text-align: center; cursor: pointer; background: rgba(255,122,26,0.04); transition: all 0.2s; }
+.upload-box:active { border-color: var(--lime); background: rgba(255,122,26,0.08); }
+.upload-icon-wrap { width: 56px; height: 56px; background: var(--card2); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
+.upload-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--text); }
+.upload-hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+#fridge-preview { width: 100%; border-radius: var(--radius-sm); display: none; margin-top: 14px; max-height: 200px; object-fit: cover; }
+.change-btn { font-size: 12px; color: var(--lime); cursor: pointer; margin-top: 8px; display: none; text-align: center; font-weight: 600; }
+
+/* MANUAL */
+.ing-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.ing-input { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 13px 16px; font-family: 'Nunito', sans-serif; font-size: 14px; color: var(--text); outline: none; }
+.ing-input:focus { border-color: rgba(255,122,26,0.5); }
+.ing-input::placeholder { color: var(--muted); }
+.add-btn { width: 46px; height: 46px; background: var(--lime); border: none; border-radius: var(--radius-sm); font-size: 24px; font-weight: 700; color: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; min-height: 10px; margin-bottom: 4px; }
+.tag { display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.1); border: 1px solid var(--border); border-radius: 99px; padding: 5px 12px; font-size: 13px; color: var(--text); }
+.tag-x { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 15px; padding: 0; line-height: 1; }
+
+/* PREFS */
+.section-label { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin: 18px 0 10px; }
+.prefs-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.pref-btn { padding: 7px 14px; border: 1px solid var(--border); border-radius: 99px; font-size: 13px; color: var(--muted); cursor: pointer; background: var(--card); font-family: 'Nunito', sans-serif; font-weight: 600; transition: all 0.15s; }
+.pref-btn.on { background: rgba(255,122,26,0.15); color: var(--lime); border-color: rgba(255,122,26,0.4); }
+
+/* GENERATE BTN */
+.gen-wrap { padding: 12px 20px 32px; background: var(--bg); }
+.gen-btn { width: 100%; padding: 17px; background: var(--lime); border: none; border-radius: var(--radius); font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 800; color: #ffffff; cursor: pointer; letter-spacing: -0.3px; transition: all 0.15s; }
+.gen-btn:active { transform: scale(0.98); background: var(--lime2); }
+.gen-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+/* RECIPES */
+.recipe-card { background: #ffffff; border-radius: var(--radius); overflow: hidden; margin-bottom: 14px; border: 1px solid rgba(0,0,0,0.08); }
+.recipe-img { width: 100%; height: 180px; object-fit: cover; background: var(--card2); display: flex; align-items: center; justify-content: center; }
+.recipe-img-placeholder { width: 100%; height: 180px; background: #e8eeff; display: flex; align-items: center; justify-content: center; }
+.recipe-img img { width: 100%; height: 180px; object-fit: cover; display: block; }
+.recipe-body { padding: 14px 16px; background: #ffffff; }
+.recipe-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.recipe-name { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: #0d1b3e; line-height: 1.2; letter-spacing: -0.3px; }
+.recipe-time { font-size: 11px; color: #ffffff; background: var(--lime); padding: 4px 9px; border-radius: 8px; white-space: nowrap; flex-shrink: 0; font-weight: 600; }
+.badges { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+.badge { font-size: 11px; padding: 3px 9px; border-radius: 7px; font-weight: 600; }
+.badge-lime { background: rgba(255,122,26,0.12); color: #cc5500; }
+.badge-green { background: rgba(30,160,70,0.12); color: #1a8040; }
+.badge-amber { background: rgba(200,140,0,0.12); color: #996600; }
+.recipe-desc { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 12px; }
+.recipe-ings { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px; }
+.ring { font-size: 11px; padding: 3px 9px; background: #f0f4ff; border-radius: 7px; color: #2a3a5c; font-weight: 600; }
+.steps-btn { font-size: 13px; color: #ff7a1a; background: none; border: none; cursor: pointer; padding: 0; font-family: 'Nunito', sans-serif; font-weight: 700; }
+.steps { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.08); }
+.steps.open { display: block; }
+.steps ol { padding-left: 18px; }
+.steps li { font-size: 14px; color: #2a3a5c; line-height: 1.8; }
+
+/* STATUS */
+.status-msg { text-align: center; padding: 2.5rem 1rem; font-size: 14px; color: #8090c0; }
+.ldots::after { content: '.'; animation: ld 1.2s infinite; }
+@keyframes ld { 0%{content:'.'} 33%{content:'..'} 66%{content:'...'} }
+
+/* PROFILE MENU */
+.profile-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 50; display: none; }
+.profile-overlay.open { display: block; }
+.profile-sheet { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--card); border-radius: 24px 24px 0 0; padding: 24px 24px 40px; z-index: 51; }
+.profile-name { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+.profile-email { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+.profile-btn { width: 100%; padding: 14px; background: var(--card2); border: none; border-radius: var(--radius-sm); font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 600; color: var(--danger); cursor: pointer; }
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div class="splash" id="splash">
+  <div class="splash-logo">
+    <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+      <rect x="8" y="4" width="24" height="32" rx="4" fill="#0d1b3e" stroke="#0d1b3e" stroke-width="1"/>
+      <rect x="8" y="4" width="24" height="12" rx="4" fill="rgba(255,255,255,0.15)"/>
+      <line x1="8" y1="16" x2="32" y2="16" stroke="#0a0a0a" stroke-width="1.5"/>
+      <rect x="28" y="8" width="2" height="5" rx="1" fill="#0a0a0a"/>
+      <rect x="28" y="20" width="2" height="7" rx="1" fill="#0a0a0a"/>
+      <circle cx="20" cy="23" r="2.5" fill="rgba(0,0,0,0.3)"/>
+    </svg>
+  </div>
+  <div class="splash-title">Como Lo Que <span>Tengo</span></div>
+  <div class="splash-sub">Recetas con lo que hay en tu nevera</div>
+</div>
+
+<div class="app">
+
+  <!-- APIKEY SCREEN -->
+  <div class="screen auth-screen" id="screen-apikey">
+    <div class="auth-hero">
+      <div class="auth-hero-icon">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <circle cx="13" cy="16" r="6" stroke="rgba(0,0,0,0.5)" stroke-width="2" fill="none"/>
+          <path d="M17 16h10M23 13v6" stroke="rgba(0,0,0,0.5)" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h1>Un ultimo<br>paso</h1>
+      <p>Configura tu clave de IA - solo una vez</p>
+    </div>
+    <div class="auth-body">
+      <p style="font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.6;">La clave se guarda solo en tu movil. Nadie mas puede verla.</p>
+      <p style="font-size:13px;color:var(--text);margin-bottom:5px;">1. Ve a <strong style="color:var(--lime)">platform.openai.com</strong></p>
+      <p style="font-size:13px;color:var(--text);margin-bottom:5px;">2. Haz clic en <strong style="color:var(--lime)">API Keys &gt; Create new key</strong></p>
+      <p style="font-size:13px;color:var(--text);margin-bottom:20px;">3. Pegala aqui abajo</p>
+      <div class="field" style="margin-bottom:14px;">
+        <div class="field-label">Tu clave de OpenAI</div>
+        <input type="password" id="apikey-input" placeholder="sk-proj-...">
+      </div>
+      <button class="btn-main" onclick="saveApiKey()">Guardar y continuar</button>
+      <div style="margin-top:10px;font-size:12px;color:var(--danger);text-align:center;" id="apikey-msg"></div>
+    </div>
+  </div>
+
+
+  <!-- AUTH SCREEN -->
+  <div class="screen auth-screen active" id="screen-auth">
+    <div class="auth-hero">
+      <div class="auth-hero-icon">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <rect x="6" y="3" width="20" height="26" rx="3" fill="rgba(0,0,0,0.25)"/>
+          <line x1="6" y1="13" x2="26" y2="13" stroke="rgba(0,0,0,0.4)" stroke-width="1.5"/>
+          <rect x="22" y="6" width="2" height="4" rx="1" fill="rgba(0,0,0,0.4)"/>
+          <rect x="22" y="16" width="2" height="6" rx="1" fill="rgba(0,0,0,0.4)"/>
+        </svg>
+      </div>
+      <h1>Como Lo Que<br>Tengo</h1>
+      <p>Recetas inteligentes con lo que tienes en casa</p>
+    </div>
+    <div class="auth-body">
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="switchAuthTab('login')">Entrar</button>
+        <button class="auth-tab" onclick="switchAuthTab('register')">Registrarse</button>
+      </div>
+
+      <div class="auth-form active" id="form-login">
+        <div class="field">
+          <div class="field-label">Email</div>
+          <input type="email" id="login-email" placeholder="tu@email.com">
+        </div>
+        <div class="field">
+          <div class="field-label">Contraseña</div>
+          <input type="password" id="login-pass" placeholder="••••••••">
+        </div>
+        <button class="btn-main" onclick="doLogin()">Entrar</button>
+        <div class="auth-divider" id="login-msg"></div>
+      </div>
+
+      <div class="auth-form" id="form-register">
+        <div class="field">
+          <div class="field-label">Nombre</div>
+          <input type="text" id="reg-name" placeholder="Tu nombre">
+        </div>
+        <div class="field">
+          <div class="field-label">Email</div>
+          <input type="email" id="reg-email" placeholder="tu@email.com">
+        </div>
+        <div class="field">
+          <div class="field-label">Contraseña</div>
+          <input type="password" id="reg-pass" placeholder="Mínimo 6 caracteres">
+        </div>
+        <button class="btn-main" onclick="doRegister()">Crear cuenta</button>
+        <div class="auth-divider" id="reg-msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN SCREEN -->
+  <div class="screen main-screen" id="screen-main">
+    <div class="topbar">
+      <div class="topbar-title">Como Lo Que <span>Tengo</span></div>
+      <div class="user-avatar" id="userAvatar" onclick="openProfile()">?</div>
+    </div>
+
+    <div class="mode-tabs">
+      <button class="mode-tab active" onclick="switchMode('photo')">Foto nevera</button>
+      <button class="mode-tab" onclick="switchMode('manual')">A mano</button>
+      <button class="mode-tab" onclick="switchMode('myrecipes')">Mis recetas</button>
+    </div>
+
+    <div class="scroll" id="mainScroll">
+
+      <div id="sec-photo">
+        <div class="upload-box" onclick="showPhotoOptions()" id="uploadBox">
+          <div class="upload-icon-wrap">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ff7a1a" stroke-width="1.8">
+              <rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 15l5-5 4 4 3-3 6 6"/><circle cx="8.5" cy="8.5" r="1.5"/>
+            </svg>
+          </div>
+          <div class="upload-title">Foto de tu nevera</div>
+          <div class="upload-hint">La IA detectará los ingredientes automáticamente</div>
+          <img id="fridge-preview">
+        </div>
+        <div class="change-btn" id="changeBtn" onclick="showPhotoOptions()">Cambiar foto</div>
+        <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handlePhoto(event)">
+        <input type="file" id="fileInputCamera" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(event)">
+
+        <!-- Photo options sheet -->
+        <div id="photoOptionsOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:100;" onclick="closePhotoOptions()"></div>
+        <div id="photoOptionsSheet" style="display:none;position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--card);border-radius:24px 24px 0 0;padding:20px 20px 40px;z-index:101;">
+          <div style="font-family:Syne,sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:16px;text-align:center;">¿Cómo quieres añadir la foto?</div>
+          <button onclick="openCamera()" style="width:100%;padding:14px;background:var(--lime);border:none;border-radius:12px;font-family:Syne,sans-serif;font-size:15px;font-weight:700;color:#fff;cursor:pointer;margin-bottom:10px;">Abrir cámara</button>
+          <button onclick="openGallery()" style="width:100%;padding:14px;background:var(--card2);border:1px solid var(--border);border-radius:12px;font-family:Syne,sans-serif;font-size:15px;font-weight:700;color:var(--text);cursor:pointer;">Elegir de galería</button>
+        </div>
+      </div>
+
+      <div id="sec-manual" style="display:none">
+        <div class="ing-row">
+          <input class="ing-input" type="text" id="ingInput" placeholder="Ej: huevos, tomate, queso..." onkeydown="if(event.key==='Enter')addIng()">
+          <button class="add-btn" onclick="addIng()">+</button>
+        </div>
+        <div class="tags" id="tagBox"></div>
+      </div>
+
+      <div id="sec-myrecipes" style="display:none">
+        <div id="myRecipesList"></div>
+        <div id="addRecipeBtn" style="display:none">
+          <button class="gen-btn" style="margin-top:12px;" onclick="showAddRecipeForm()">+ Añadir receta</button>
+        </div>
+      </div>
+
+      <div id="sec-addrecipe" style="display:none">
+        <div style="margin-bottom:12px;">
+          <button onclick="cancelAddRecipe()" style="background:none;border:none;color:var(--lime);font-size:14px;font-weight:700;cursor:pointer;padding:0;">← Volver</button>
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <div class="field-label">Nombre del plato</div>
+          <input class="ing-input" style="width:100%" type="text" id="nr-title" placeholder="Ej: Tortilla de patatas">
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <div class="field-label">Tiempo</div>
+          <input class="ing-input" style="width:100%" type="text" id="nr-time" placeholder="Ej: 30 min">
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <div class="field-label">Descripción</div>
+          <textarea id="nr-desc" placeholder="Describe el plato..." style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 16px;font-family:Nunito,sans-serif;font-size:14px;color:var(--text);outline:none;resize:none;height:80px;"></textarea>
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <div class="field-label">Ingredientes (uno por línea)</div>
+          <textarea id="nr-ings" placeholder="huevos&#10;patatas&#10;cebolla..." style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 16px;font-family:Nunito,sans-serif;font-size:14px;color:var(--text);outline:none;resize:none;height:100px;"></textarea>
+        </div>
+        <div class="field" style="margin-bottom:16px;">
+          <div class="field-label">Pasos (uno por línea)</div>
+          <textarea id="nr-steps" placeholder="Paso 1...&#10;Paso 2...&#10;Paso 3..." style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 16px;font-family:Nunito,sans-serif;font-size:14px;color:var(--text);outline:none;resize:none;height:120px;"></textarea>
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <div class="field-label">Fotos del plato (máx 3)</div>
+          <input type="file" id="nr-photos" accept="image/*" multiple style="display:none" onchange="previewMedia(event,'photos')">
+          <div onclick="document.getElementById('nr-photos').click()" style="border:1.5px dashed rgba(255,122,26,0.3);border-radius:12px;padding:16px;text-align:center;cursor:pointer;background:rgba(255,122,26,0.03);">
+            <div style="font-size:13px;color:var(--muted);">Toca para añadir fotos</div>
+          </div>
+          <div id="preview-photos" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;"></div>
+        </div>
+        <div class="field" style="margin-bottom:16px;">
+          <div class="field-label">Vídeo del plato (opcional)</div>
+          <input type="file" id="nr-video" accept="video/*" style="display:none" onchange="previewMedia(event,'video')">
+          <div onclick="document.getElementById('nr-video').click()" style="border:1.5px dashed rgba(255,122,26,0.3);border-radius:12px;padding:16px;text-align:center;cursor:pointer;background:rgba(255,122,26,0.03);">
+            <div style="font-size:13px;color:var(--muted);">Toca para añadir vídeo</div>
+          </div>
+          <div id="preview-video" style="margin-top:8px;"></div>
+        </div>
+        <button class="gen-btn" onclick="saveRecipe()" id="saveRecipeBtn">GUARDAR RECETA</button>
+        <div id="save-msg" style="text-align:center;font-size:13px;margin-top:10px;"></div>
+      </div>
+
+      <div id="sec-editrecipe" style="display:none">
+        <div style="margin-bottom:12px;">
+          <button onclick="cancelEditRecipe()" style="background:none;border:none;color:var(--lime);font-size:14px;font-weight:700;cursor:pointer;padding:0;">← Volver</button>
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <div class="field-label">Nombre del plato</div>
+          <input class="ing-input" style="width:100%" type="text" id="er-title" placeholder="Nombre del plato">
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <div class="field-label">Tiempo</div>
+          <input class="ing-input" style="width:100%" type="text" id="er-time" placeholder="Ej: 30 min">
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <div class="field-label">Descripción</div>
+          <textarea id="er-desc" style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 16px;font-family:Nunito,sans-serif;font-size:14px;color:var(--text);outline:none;resize:none;height:80px;"></textarea>
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <div class="field-label">Ingredientes (uno por línea)</div>
+          <textarea id="er-ings" style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 16px;font-family:Nunito,sans-serif;font-size:14px;color:var(--text);outline:none;resize:none;height:100px;"></textarea>
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <div class="field-label">Pasos (uno por línea)</div>
+          <textarea id="er-steps" style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 16px;font-family:Nunito,sans-serif;font-size:14px;color:var(--text);outline:none;resize:none;height:120px;"></textarea>
+        </div>
+        <div class="field-label" style="margin-bottom:8px;">Fotos actuales</div>
+        <div id="er-current-photos" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;"></div>
+        <div class="field" style="margin-bottom:12px;">
+          <div class="field-label">Añadir fotos nuevas</div>
+          <input type="file" id="er-photos" accept="image/*" multiple style="display:none" onchange="previewEditMedia(event,'photos')">
+          <div onclick="document.getElementById('er-photos').click()" style="border:1.5px dashed rgba(255,122,26,0.3);border-radius:12px;padding:16px;text-align:center;cursor:pointer;">
+            <div style="font-size:13px;color:var(--muted);">Toca para añadir fotos</div>
+          </div>
+          <div id="er-preview-photos" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;"></div>
+        </div>
+        <div class="field" style="margin-bottom:16px;">
+          <div class="field-label">Vídeo</div>
+          <div id="er-current-video" style="margin-bottom:8px;"></div>
+          <input type="file" id="er-video" accept="video/*" style="display:none" onchange="previewEditMedia(event,'video')">
+          <div onclick="document.getElementById('er-video').click()" style="border:1.5px dashed rgba(255,122,26,0.3);border-radius:12px;padding:16px;text-align:center;cursor:pointer;">
+            <div style="font-size:13px;color:var(--muted);">Cambiar vídeo</div>
+          </div>
+          <div id="er-preview-video" style="margin-top:8px;"></div>
+        </div>
+        <button class="gen-btn" onclick="updateRecipe()" id="updateRecipeBtn">GUARDAR CAMBIOS</button>
+        <div id="update-msg" style="text-align:center;font-size:13px;margin-top:10px;"></div>
+      </div>
+
+      <div id="sec-prefs">
+      <div class="section-label">Preferencias</div>
+      <div class="prefs-row">
+        <button class="pref-btn" onclick="togglePref(this)" data-v="vegetariana o vegana">Vegetariana/vegana</button>
+        <button class="pref-btn" onclick="togglePref(this)" data-v="sin gluten">Sin gluten</button>
+        <button class="pref-btn" onclick="togglePref(this)" data-v="menos de 30 minutos">- 30 min</button>
+        <button class="pref-btn" onclick="togglePref(this)" data-v="incluir postre">Postres</button>
+        <button class="pref-btn" onclick="togglePref(this)" data-v="sin lactosa">Sin lactosa</button>
+        <button class="pref-btn" onclick="togglePref(this)" data-v="alta proteina">Alta proteína</button>
+      </div>
+
+      </div>
+      <div id="recipesArea"></div>
+    </div>
+
+    <div class="gen-wrap" id="gen-wrap-id">
+      <button class="gen-btn" id="genBtn" onclick="generate()">GENERAR RECETAS</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- PROFILE SHEET -->
+<div class="profile-overlay" id="profileOverlay" onclick="closeProfile()"></div>
+<div class="profile-sheet" id="profileSheet" style="display:none">
+  <div class="profile-name" id="profileName">Usuario</div>
+  <div class="profile-email" id="profileEmail">email@ejemplo.com</div>
+  <button class="profile-btn" onclick="doLogout()">Cerrar sesión</button>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://lygbhgipxbgxoxgzciqs.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5Z2JoZ2lweGJneG94Z3pjaXFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NzM4MzMsImV4cCI6MjA4OTE0OTgzM30.Smlfzt1nqJ37GjVPGcy0MAJsIz7RA4j_1lYqdfFgdfw';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let API_KEY = '';
+// --- AUTH ---
+
+// Supabase auth helpers
+function saveSession(u) { localStorage.setItem('lqt_session', JSON.stringify(u)); }
+function loadSession() {
+  try { return JSON.parse(localStorage.getItem('lqt_session')); } catch { return null; }
+}
+
+
+function saveApiKey() {
+  const key = document.getElementById('apikey-input').value.trim();
+  if (!key.startsWith('sk-')) {
+    document.getElementById('apikey-msg').textContent = 'La clave debe empezar por sk-';
+    return;
+  }
+  localStorage.setItem('lqt_apikey', key);
+  API_KEY = key;
+  document.getElementById('screen-apikey').classList.remove('active');
+  document.getElementById('screen-auth').classList.add('active');
+}
+
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='register')));
+  document.getElementById('form-login').classList.toggle('active', tab==='login');
+  document.getElementById('form-register').classList.toggle('active', tab==='register');
+}
+
+async function doRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim().toLowerCase();
+  const pass = document.getElementById('reg-pass').value;
+  const msg = document.getElementById('reg-msg');
+  if (!name || !email || !pass) { msg.style.color='var(--danger)'; msg.textContent='Rellena todos los campos.'; return; }
+  if (pass.length < 6) { msg.style.color='var(--danger)'; msg.textContent='La contraseña debe tener mínimo 6 caracteres.'; return; }
+  msg.style.color='var(--muted)'; msg.textContent='Creando cuenta...';
+  const { data, error } = await sb.auth.signUp({
+    email, password: pass,
+    options: { data: { name } }
+  });
+  if (error) { msg.style.color='var(--danger)'; msg.textContent=error.message; return; }
+  msg.style.color='#4cd97a';
+  msg.textContent='Cuenta creada. Revisa tu email para confirmar.';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const pass = document.getElementById('login-pass').value;
+  const msg = document.getElementById('login-msg');
+  msg.style.color='var(--muted)'; msg.textContent='Entrando...';
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) { msg.style.color='var(--danger)'; msg.textContent='Email o contraseña incorrectos.'; return; }
+  const name = data.user.user_metadata?.name || email.split('@')[0];
+  currentUser = { name, email };
+  saveSession(currentUser);
+  // Get API key from Supabase
+  const { data: cfg } = await sb.from('config').select('value').eq('key', 'openai_key').single();
+  if (cfg) API_KEY = cfg.value;
+  enterApp();
+}
+
+function doLogout() {
+  localStorage.removeItem('lqt_session');
+  currentUser = null;
+  closeProfile();
+  document.getElementById('screen-auth').classList.add('active');
+  document.getElementById('screen-main').classList.remove('active');
+}
+
+function enterApp() {
+  document.getElementById('screen-auth').classList.remove('active');
+  document.getElementById('screen-main').classList.add('active');
+  const initials = currentUser.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+  document.getElementById('userAvatar').textContent = initials;
+}
+
+function openProfile() {
+  document.getElementById('profileName').textContent = currentUser.name;
+  document.getElementById('profileEmail').textContent = currentUser.email;
+  document.getElementById('profileSheet').style.display = 'block';
+  document.getElementById('profileOverlay').classList.add('open');
+}
+function closeProfile() {
+  document.getElementById('profileSheet').style.display = 'none';
+  document.getElementById('profileOverlay').classList.remove('open');
+}
+
+// --- APP ---
+let ingredients = [];
+let prefs = [];
+let photoBase64 = null;
+let currentMode = 'photo';
+
+setTimeout(async () => {
+  document.getElementById('splash').classList.add('hide');
+  // Check Supabase session
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    const name = session.user.user_metadata?.name || session.user.email.split('@')[0];
+    currentUser = { name, email: session.user.email };
+    const { data: cfg } = await sb.from('config').select('value').eq('key', 'openai_key').single();
+    if (cfg) API_KEY = cfg.value;
+    enterApp();
+  } else {
+    document.getElementById('screen-auth').classList.add('active');
+  }
+}, 1800);
+
+function switchMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-tab').forEach((t,i) => t.classList.toggle('active',
+    (i===0&&mode==='photo')||(i===1&&mode==='manual')||(i===2&&mode==='myrecipes')));
+  document.getElementById('sec-photo').style.display = mode==='photo' ? 'block' : 'none';
+  document.getElementById('sec-manual').style.display = mode==='manual' ? 'block' : 'none';
+  document.getElementById('sec-myrecipes').style.display = mode==='myrecipes' ? 'block' : 'none';
+  document.getElementById('sec-addrecipe').style.display = 'none';
+  document.getElementById('sec-editrecipe').style.display = 'none';
+  document.getElementById('sec-prefs').style.display = mode==='myrecipes' ? 'none' : 'block';
+  document.getElementById('gen-wrap-id').style.display = mode==='myrecipes' ? 'none' : 'block';
+  if (mode==='myrecipes') loadMyRecipes();
+}
+
+
+function showPhotoOptions() {
+  document.getElementById('photoOptionsOverlay').style.display = 'block';
+  document.getElementById('photoOptionsSheet').style.display = 'block';
+}
+function closePhotoOptions() {
+  document.getElementById('photoOptionsOverlay').style.display = 'none';
+  document.getElementById('photoOptionsSheet').style.display = 'none';
+}
+function openCamera() {
+  closePhotoOptions();
+  document.getElementById('fileInputCamera').click();
+}
+function openGallery() {
+  closePhotoOptions();
+  document.getElementById('fileInput').click();
+}
+
+function handlePhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    photoBase64 = ev.target.result.split(',')[1];
+    const img = document.getElementById('fridge-preview');
+    img.src = ev.target.result;
+    img.style.display = 'block';
+    document.getElementById('changeBtn').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function addIng() {
+  const input = document.getElementById('ingInput');
+  input.value.split(',').map(v=>v.trim()).filter(Boolean).forEach(v => {
+    if (v && !ingredients.includes(v)) ingredients.push(v);
+  });
+  input.value = '';
+  renderTags();
+}
+
+function renderTags() {
+  document.getElementById('tagBox').innerHTML = ingredients.map((ing,i) =>
+    `<span class="tag">${ing}<button class="tag-x" onclick="removeIng(${i})">×</button></span>`
+  ).join('');
+}
+
+function removeIng(i) { ingredients.splice(i,1); renderTags(); }
+
+function togglePref(el) {
+  el.classList.toggle('on');
+  const v = el.dataset.v;
+  prefs = prefs.includes(v) ? prefs.filter(p=>p!==v) : [...prefs, v];
+}
+
+async function generate() {
+  const area = document.getElementById('recipesArea');
+  const btn = document.getElementById('genBtn');
+
+  if (currentMode==='manual' && !ingredients.length) {
+    area.innerHTML = '<div class="status-msg" style="color:var(--danger)">Añade al menos un ingrediente.</div>'; return;
+  }
+  if (currentMode==='photo' && !photoBase64) {
+    area.innerHTML = '<div class="status-msg" style="color:var(--danger)">Sube una foto primero.</div>'; return;
+  }
+
+  btn.disabled = true;
+  area.innerHTML = '<div class="status-msg">Generando recetas<span class="ldots"></span></div>';
+  document.getElementById('mainScroll').scrollTo({top:9999,behavior:'smooth'});
+
+  const prefsText = prefs.length ? `Preferencias: ${prefs.join(', ')}.` : '';
+  let messages;
+
+  if (currentMode==='photo') {
+    messages = [{role:'user', content:[
+      {type:'image_url', image_url:{url:`data:image/jpeg;base64,${photoBase64}`}},
+      {type:'text', text:`Eres un chef experto. Analiza los ingredientes visibles en esta nevera. ${prefsText} Genera exactamente 3 recetas en JSON. Responde SOLO JSON válido sin backticks ni texto extra. Formato: {"recipes":[{"title":"...","time":"15 min","badges":["Rápida","Vegetariana"],"description":"descripción apetitosa en 2 frases","ingredients":["ing1","ing2"],"steps":["paso 1","paso 2","paso 3"]}]}`}
+    ]}];
+  } else {
+    messages = [{role:'user', content:`Eres un chef experto. Ingredientes disponibles: ${ingredients.join(', ')}. ${prefsText} Genera exactamente 3 recetas en JSON. Responde SOLO JSON válido sin backticks ni texto extra. Formato: {"recipes":[{"title":"...","time":"15 min","badges":["Rápida"],"description":"descripción apetitosa en 2 frases","ingredients":["ing1","ing2"],"steps":["paso 1","paso 2","paso 3"]}]}`}];
+  }
+
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${API_KEY}`},
+      body: JSON.stringify({model:'gpt-4o', max_tokens:1200, messages})
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const text = (data.choices[0].message.content||'').replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(text);
+    await renderRecipes(parsed.recipes);
+    document.getElementById('mainScroll').scrollTo({top:9999,behavior:'smooth'});
+  } catch(e) {
+    area.innerHTML = `<div class="status-msg" style="color:var(--danger)">Error: ${e.message||'Inténtalo de nuevo.'}</div>`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function generateImage(title, ingredients, imageKeyword) {
+  try {
+    const ingList = (ingredients || []).slice(0, 4).join(', ');
+    const prompt = `Professional food photography of "${title}", a Spanish dish made with ${ingList}. Served on a white plate, natural lighting, top-down view, restaurant quality, highly realistic, 4k`;
+    const res = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_KEY}` },
+      body: JSON.stringify({ model: 'dall-e-2', prompt, n: 1, size: '512x512' })
+    });
+    const data = await res.json();
+    if (data.data && data.data[0]) return data.data[0].url;
+    return null;
+  } catch { return null; }
+}
+
+async function renderRecipes(recipes) {
+  const area = document.getElementById('recipesArea');
+  area.innerHTML = '<div class="section-label" style="margin-top:20px;">Tus recetas</div>';
+
+  for (let i = 0; i < recipes.length; i++) {
+    const r = recipes[i];
+    const card = document.createElement('div');
+    card.className = 'recipe-card';
+    card.innerHTML = `
+      <div class="recipe-img-placeholder" id="img-${i}">
+        <div class="status-msg" style="padding:1rem">Generando imagen<span class="ldots"></span></div>
+      </div>
+      <div class="recipe-body">
+        <div class="recipe-top">
+          <div class="recipe-name">${r.title}</div>
+          <div class="recipe-time">${r.time}</div>
+        </div>
+        <div class="badges">${(r.badges||[]).map(b=>`<span class="badge ${badgeClass(b)}">${b}</span>`).join('')}</div>
+        <div class="recipe-desc">${r.description}</div>
+        <div class="recipe-ings">${(r.ingredients||[]).map(ing=>`<span class="ring">${ing}</span>`).join('')}</div>
+        <button class="steps-btn" onclick="toggleSteps(this,${i})">Ver pasos →</button>
+        <div class="steps" id="st-${i}">
+          <ol>${(r.steps||[]).map(s=>`<li>${s}</li>`).join('')}</ol>
+        </div>
+      </div>`;
+    area.appendChild(card);
+
+    // Generate image async - always
+    generateImage(r.title, r.ingredients, r.imageKeyword).then(url => {
+        const placeholder = document.getElementById(`img-${i}`);
+        if (placeholder) {
+          if (url) {
+            placeholder.innerHTML = `<img src="${url}" style="width:100%;height:180px;object-fit:cover;display:block;">`;
+          } else {
+            placeholder.style.display = 'none';
+          }
+        }
+      });
+  }
+}
+
+function badgeClass(b) {
+  const l = b.toLowerCase();
+  if (l.includes('veg')) return 'badge-green';
+  if (l.includes('gluten') || l.includes('lactosa')) return 'badge-amber';
+  return 'badge-lime';
+}
+
+
+let isApprovedUser = false;
+
+async function checkApproved() {
+  if (!currentUser) return;
+  const { data } = await sb.from('approved_users').select('user_id').eq('email', currentUser.email).single();
+  isApprovedUser = !!data;
+}
+
+async function loadMyRecipes() {
+  const list = document.getElementById('myRecipesList');
+  const addBtn = document.getElementById('addRecipeBtn');
+  list.innerHTML = '<div class="status-msg">Cargando<span class="ldots"></span></div>';
+  await checkApproved();
+  if (isApprovedUser) addBtn.style.display = 'block';
+  else addBtn.style.display = 'none';
+
+  const { data, error } = await sb.from('recipes').select('*').eq('approved', true).order('created_at', {ascending: false});
+  if (error || !data || data.length === 0) {
+    list.innerHTML = '<div class="status-msg">No hay recetas todavía.</div>';
+    return;
+  }
+  list.innerHTML = '<div class="recipes">' + data.map((r,i) => `
+    <div class="recipe-card">
+      ${r.video_url ? `<video src="${r.video_url}" style="width:100%;max-height:220px;display:block;background:#000;" controls playsinline></video>` : 
+        r.image_url ? `<img src="${r.image_url}" style="width:100%;height:180px;object-fit:cover;display:block;">` : ''}
+      ${r.extra_images && r.extra_images.length > 1 ? `<div style="display:flex;gap:4px;padding:4px;">${r.extra_images.slice(1).map(u=>`<img src="${u}" style="flex:1;height:80px;object-fit:cover;border-radius:8px;">`).join('')}</div>` : ''}
+      <div class="recipe-body">
+        <div class="recipe-top">
+          <div class="recipe-name">${r.title}</div>
+          <div class="recipe-time">${r.time||''}</div>
+        </div>
+        <div class="badges">${(r.badges||[]).map(b=>`<span class="badge badge-lime">${b}</span>`).join('')}</div>
+        <div class="recipe-desc">${r.description||''}</div>
+        <div class="recipe-ings">${(r.ingredients||[]).map(ing=>`<span class="ring">${ing}</span>`).join('')}</div>
+        <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+          <button class="steps-btn" onclick="toggleSteps(this,'mr-${i}')">Ver pasos →</button>
+          ${isApprovedUser ? `<button onclick="editRecipe('${r.id}')" style="background:rgba(255,122,26,0.1);border:none;border-radius:8px;padding:5px 12px;font-size:12px;color:var(--lime);cursor:pointer;font-weight:700;margin-left:auto;">Editar</button>` : ''}
+        </div>
+        <div class="steps" id="st-mr-${i}">
+          <ol>${(r.steps||[]).map(s=>`<li>${s}</li>`).join('')}</ol>
+        </div>
+      </div>
+    </div>
+  `).join('') + '</div>';
+}
+
+function showAddRecipeForm() {
+  document.getElementById('sec-myrecipes').style.display = 'none';
+  document.getElementById('sec-addrecipe').style.display = 'block';
+}
+
+function cancelAddRecipe() {
+  document.getElementById('sec-addrecipe').style.display = 'none';
+  document.getElementById('sec-editrecipe').style.display = 'none';
+  document.getElementById('sec-myrecipes').style.display = 'block';
+}
+
+function previewMedia(e, type) {
+  const files = e.target.files;
+  if (type === 'photos') {
+    const container = document.getElementById('preview-photos');
+    container.innerHTML = '';
+    Array.from(files).slice(0,3).forEach(file => {
+      const url = URL.createObjectURL(file);
+      container.innerHTML += `<img src="${url}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;">`;
+    });
+  } else {
+    const container = document.getElementById('preview-video');
+    const url = URL.createObjectURL(files[0]);
+    container.innerHTML = `<video src="${url}" style="width:100%;max-height:180px;border-radius:8px;" controls></video>`;
+  }
+}
+
+async function uploadFile(file, folder) {
+  const ext = file.name.split('.').pop();
+  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const { data, error } = await sb.storage.from('recipe-media').upload(path, file);
+  if (error) return null;
+  const { data: urlData } = sb.storage.from('recipe-media').getPublicUrl(path);
+  return urlData.publicUrl;
+}
+
+async function saveRecipe() {
+  const title = document.getElementById('nr-title').value.trim();
+  const time = document.getElementById('nr-time').value.trim();
+  const desc = document.getElementById('nr-desc').value.trim();
+  const ings = document.getElementById('nr-ings').value.split('\n').map(v=>v.trim()).filter(Boolean);
+  const steps = document.getElementById('nr-steps').value.split('\n').map(v=>v.trim()).filter(Boolean);
+  const msg = document.getElementById('save-msg');
+  const btn = document.getElementById('saveRecipeBtn');
+
+  if (!title || !ings.length || !steps.length) {
+    msg.style.color='var(--danger)'; msg.textContent='Rellena nombre, ingredientes y pasos.'; return;
+  }
+
+  btn.disabled = true;
+  msg.style.color='var(--muted)'; msg.textContent='Generando imagen y guardando...';
+
+  // Upload photos
+  const photoFiles = document.getElementById('nr-photos').files;
+  const videoFile = document.getElementById('nr-video').files[0];
+  let imageUrls = [];
+  let videoUrl = null;
+
+  if (photoFiles.length > 0) {
+    msg.style.color='var(--muted)'; msg.textContent='Subiendo fotos...';
+    for (const file of Array.from(photoFiles).slice(0,3)) {
+      const url = await uploadFile(file, 'photos');
+      if (url) imageUrls.push(url);
+    }
+  }
+
+  if (videoFile) {
+    msg.style.color='var(--muted)'; msg.textContent='Subiendo vídeo...';
+    videoUrl = await uploadFile(videoFile, 'videos');
+  }
+
+  // If no photos uploaded, generate with DALL-E
+  if (imageUrls.length === 0) {
+    msg.style.color='var(--muted)'; msg.textContent='Generando imagen con IA...';
+    try {
+      const prompt = `Professional food photography of "${title}", Spanish dish with ${ings.slice(0,3).join(', ')}. White plate, natural lighting, restaurant quality, realistic`;
+      const res = await fetch('https://api.openai.com/v1/images/generations', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':`Bearer ${API_KEY}`},
+        body: JSON.stringify({model:'dall-e-2', prompt, n:1, size:'512x512'})
+      });
+      const data = await res.json();
+      if (data.data && data.data[0]) imageUrls.push(data.data[0].url);
+    } catch {}
+  }
+
+  msg.style.color='var(--muted)'; msg.textContent='Guardando receta...';
+
+  const { error } = await sb.from('recipes').insert({
+    user_id: (await sb.auth.getUser()).data.user.id,
+    title, time, description: desc,
+    ingredients: ings, steps,
+    image_url: imageUrls[0] || null,
+    extra_images: imageUrls,
+    video_url: videoUrl,
+    approved: true
+  });
+
+  if (error) {
+    msg.style.color='var(--danger)'; msg.textContent='Error al guardar. Inténtalo de nuevo.';
+  } else {
+    msg.style.color='#4cd97a'; msg.textContent='Receta guardada correctamente.';
+    setTimeout(() => { cancelAddRecipe(); loadMyRecipes(); }, 1500);
+  }
+  btn.disabled = false;
+}
+
+function toggleSteps(btn, id) {
+  const el = document.getElementById('st-'+id);
+  if (!el) return;
+  el.classList.toggle('open');
+  btn.textContent = el.classList.contains('open') ? 'Ocultar pasos ↑' : 'Ver pasos →';
+}
+
+let editingRecipeId = null;
+let editingRecipeData = null;
+let deletedPhotos = [];
+
+async function editRecipe(id) {
+  const { data, error } = await sb.from('recipes').select('*').eq('id', id).single();
+  if (error || !data) return;
+  editingRecipeId = id;
+  editingRecipeData = data;
+  deletedPhotos = [];
+
+  document.getElementById('er-title').value = data.title || '';
+  document.getElementById('er-time').value = data.time || '';
+  document.getElementById('er-desc').value = data.description || '';
+  document.getElementById('er-ings').value = (data.ingredients||[]).join('\n');
+  document.getElementById('er-steps').value = (data.steps||[]).join('\n');
+
+  // Show current photos with delete button
+  const photosDiv = document.getElementById('er-current-photos');
+  const photos = data.extra_images || (data.image_url ? [data.image_url] : []);
+  photosDiv.innerHTML = photos.map((url, i) => `
+    <div style="position:relative;" id="photo-wrap-${i}">
+      <img src="${url}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;">
+      <button onclick="deletePhoto(${i},'${url}')" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;background:#ff5c5c;border:none;border-radius:50%;color:white;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;">×</button>
+    </div>
+  `).join('');
+
+  // Show current video
+  const videoDiv = document.getElementById('er-current-video');
+  if (data.video_url) {
+    videoDiv.innerHTML = `<video src="${data.video_url}" style="width:100%;max-height:150px;border-radius:8px;" controls></video>
+    <button onclick="deleteVideo()" style="background:rgba(255,92,92,0.1);border:none;border-radius:8px;padding:5px 12px;font-size:12px;color:#ff5c5c;cursor:pointer;margin-top:6px;">Eliminar vídeo</button>`;
+  } else {
+    videoDiv.innerHTML = '<div style="font-size:12px;color:var(--muted);">Sin vídeo</div>';
+  }
+
+  document.getElementById('sec-myrecipes').style.display = 'none';
+  document.getElementById('sec-editrecipe').style.display = 'block';
+  document.getElementById('update-msg').textContent = '';
+  document.getElementById('er-preview-photos').innerHTML = '';
+  document.getElementById('er-preview-video').innerHTML = '';
+}
+
+function deletePhoto(index, url) {
+  deletedPhotos.push(url);
+  document.getElementById('photo-wrap-' + index).remove();
+}
+
+function deleteVideo() {
+  editingRecipeData.video_url = null;
+  document.getElementById('er-current-video').innerHTML = '<div style="font-size:12px;color:var(--muted);">Sin vídeo</div>';
+}
+
+function previewEditMedia(e, type) {
+  const files = e.target.files;
+  if (type === 'photos') {
+    const container = document.getElementById('er-preview-photos');
+    container.innerHTML = '';
+    Array.from(files).slice(0,3).forEach(file => {
+      const url = URL.createObjectURL(file);
+      container.innerHTML += `<img src="${url}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;">`;
+    });
+  } else {
+    const url = URL.createObjectURL(files[0]);
+    document.getElementById('er-preview-video').innerHTML = `<video src="${url}" style="width:100%;max-height:150px;border-radius:8px;" controls></video>`;
+  }
+}
+
+function cancelEditRecipe() {
+  document.getElementById('sec-editrecipe').style.display = 'none';
+  document.getElementById('sec-myrecipes').style.display = 'block';
+}
+
+async function updateRecipe() {
+  const btn = document.getElementById('updateRecipeBtn');
+  const msg = document.getElementById('update-msg');
+  btn.disabled = true;
+  msg.style.color = 'var(--muted)'; msg.textContent = 'Guardando cambios...';
+
+  const title = document.getElementById('er-title').value.trim();
+  const time = document.getElementById('er-time').value.trim();
+  const desc = document.getElementById('er-desc').value.trim();
+  const ings = document.getElementById('er-ings').value.split('\n').map(v=>v.trim()).filter(Boolean);
+  const steps = document.getElementById('er-steps').value.split('\n').map(v=>v.trim()).filter(Boolean);
+
+  // Get remaining photos (not deleted)
+  const allPhotos = editingRecipeData.extra_images || (editingRecipeData.image_url ? [editingRecipeData.image_url] : []);
+  let remainingPhotos = allPhotos.filter(url => !deletedPhotos.includes(url));
+
+  // Upload new photos
+  const newPhotoFiles = document.getElementById('er-photos').files;
+  for (const file of Array.from(newPhotoFiles).slice(0,3)) {
+    msg.textContent = 'Subiendo fotos...';
+    const url = await uploadFile(file, 'photos');
+    if (url) remainingPhotos.push(url);
+  }
+
+  // Upload new video if selected
+  let videoUrl = editingRecipeData.video_url;
+  const newVideoFile = document.getElementById('er-video').files[0];
+  if (newVideoFile) {
+    msg.textContent = 'Subiendo vídeo...';
+    videoUrl = await uploadFile(newVideoFile, 'videos');
+  }
+
+  // If video was deleted
+  if (editingRecipeData.video_url === null) videoUrl = null;
+
+  msg.textContent = 'Actualizando receta...';
+  const { error } = await sb.from('recipes').update({
+    title, time, description: desc,
+    ingredients: ings, steps,
+    image_url: remainingPhotos[0] || null,
+    extra_images: remainingPhotos,
+    video_url: videoUrl
+  }).eq('id', editingRecipeId);
+
+  if (error) {
+    msg.style.color = 'var(--danger)'; msg.textContent = 'Error al guardar. Inténtalo de nuevo.';
+  } else {
+    msg.style.color = '#4cd97a'; msg.textContent = '¡Receta actualizada!';
+    setTimeout(() => { cancelEditRecipe(); loadMyRecipes(); }, 1500);
+  }
+  btn.disabled = false;
+}
+
+</script>
+</body>
+</html>
